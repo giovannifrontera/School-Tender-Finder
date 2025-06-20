@@ -2,7 +2,7 @@
 class Database {
     private $pdo;
     public function __construct() {
-        $dsn = getenv('DB_DSN') ?: 'mysql:host=localhost;dbname=tenderfinder;charset=utf8mb4';
+        $dsn = getenv('DB_DSN') ?: 'mysql:host=localhost;dbname=school_finder;charset=utf8mb4';
         $user = getenv('DB_USER') ?: 'root';
         $pass = getenv('DB_PASS') ?: '';
         $options = [

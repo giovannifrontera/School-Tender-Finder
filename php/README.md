@@ -7,9 +7,9 @@ This directory provides a lightweight PHP implementation of selected API endpoin
 - PHP 8.0 or newer
 - MySQL (or MariaDB) database
 
-Environment variables used for database connection:
+Environment variables used for database connection (assuming MySQL via XAMPP on localhost):
 
-- `DB_DSN` – e.g. `mysql:host=localhost;dbname=tenderfinder;charset=utf8mb4`
+- `DB_DSN` – e.g. `mysql:host=localhost;dbname=school_finder;charset=utf8mb4`
 - `DB_USER` – database user
 - `DB_PASS` – database password
 
