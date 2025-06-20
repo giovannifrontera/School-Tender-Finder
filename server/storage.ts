@@ -1,4 +1,6 @@
 import { schools, tenders, scanSessions, type School, type InsertSchool, type Tender, type InsertTender, type ScanSession, type InsertScanSession, type FilterOptions } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Schools
@@ -23,70 +25,51 @@ export interface IStorage {
   getScanSession(id: number): Promise<ScanSession | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private schools: Map<number, School>;
-  private tenders: Map<number, Tender>;
-  private scanSessions: Map<number, ScanSession>;
-  private currentSchoolId: number;
-  private currentTenderId: number;
-  private currentScanId: number;
-
-  constructor() {
-    this.schools = new Map();
-    this.tenders = new Map();
-    this.scanSessions = new Map();
-    this.currentSchoolId = 1;
-    this.currentTenderId = 1;
-    this.currentScanId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async createSchools(insertSchools: InsertSchool[]): Promise<School[]> {
-    const createdSchools: School[] = [];
-    
-    for (const insertSchool of insertSchools) {
-      const id = this.currentSchoolId++;
-      const school: School = { ...insertSchool, id };
-      this.schools.set(id, school);
-      createdSchools.push(school);
-    }
-    
-    return createdSchools;
+    return await db.insert(schools).values(insertSchools).returning();
   }
 
   async getSchools(filters?: FilterOptions): Promise<School[]> {
-    let schools = Array.from(this.schools.values());
+    const query = db.select().from(schools);
+    
+    // Apply filters here if needed
+    // For now, return all schools and filter in application
+    const allSchools = await query;
+    
+    let filteredSchools = allSchools;
 
     if (filters?.areaGeografica) {
-      schools = schools.filter(s => s.areaGeografica === filters.areaGeografica);
+      filteredSchools = filteredSchools.filter(s => s.areaGeografica === filters.areaGeografica);
     }
 
     if (filters?.regione) {
-      schools = schools.filter(s => s.regione === filters.regione);
+      filteredSchools = filteredSchools.filter(s => s.regione === filters.regione);
     }
 
     if (filters?.provincia && filters.provincia.length > 0) {
-      schools = schools.filter(s => s.provincia && filters.provincia!.includes(s.provincia));
+      filteredSchools = filteredSchools.filter(s => s.provincia && filters.provincia!.includes(s.provincia));
     }
 
     if (filters?.search) {
       const searchLower = filters.search.toLowerCase();
-      schools = schools.filter(s => 
+      filteredSchools = filteredSchools.filter(s => 
         s.denominazioneScuola.toLowerCase().includes(searchLower) ||
         s.codiceMeccanografico.toLowerCase().includes(searchLower) ||
         (s.comune && s.comune.toLowerCase().includes(searchLower))
       );
     }
 
-    return schools;
+    return filteredSchools;
   }
 
   async getSchoolById(id: number): Promise<School | undefined> {
-    return this.schools.get(id);
+    const [school] = await db.select().from(schools).where(eq(schools.id, id));
+    return school || undefined;
   }
 
   async clearSchools(): Promise<void> {
-    this.schools.clear();
-    this.currentSchoolId = 1;
+    await db.delete(schools);
   }
 
   async getGeographicData(): Promise<{
@@ -94,12 +77,12 @@ export class MemStorage implements IStorage {
     regions: Record<string, string[]>;
     provinces: Record<string, string[]>;
   }> {
-    const schools = Array.from(this.schools.values());
+    const allSchools = await db.select().from(schools);
     const areas = new Set<string>();
     const regions: Record<string, Set<string>> = {};
     const provinces: Record<string, Set<string>> = {};
 
-    schools.forEach(school => {
+    allSchools.forEach(school => {
       if (school.areaGeografica) {
         areas.add(school.areaGeografica);
         
@@ -131,77 +114,60 @@ export class MemStorage implements IStorage {
   }
 
   async createTenders(insertTenders: InsertTender[]): Promise<Tender[]> {
-    const createdTenders: Tender[] = [];
-    
-    for (const insertTender of insertTenders) {
-      const id = this.currentTenderId++;
-      const tender: Tender = { 
-        ...insertTender, 
-        id,
-        createdAt: new Date(),
-      };
-      this.tenders.set(id, tender);
-      createdTenders.push(tender);
-    }
-    
-    return createdTenders;
+    if (insertTenders.length === 0) return [];
+    return await db.insert(tenders).values(insertTenders).returning();
   }
 
   async getTenders(filters?: { schoolIds?: number[]; search?: string; type?: string; platform?: string }): Promise<Tender[]> {
-    let tenders = Array.from(this.tenders.values());
+    const query = db.select().from(tenders);
+    const allTenders = await query;
+    
+    let filteredTenders = allTenders;
 
     if (filters?.schoolIds && filters.schoolIds.length > 0) {
-      tenders = tenders.filter(t => filters.schoolIds!.includes(t.schoolId));
+      filteredTenders = filteredTenders.filter(t => filters.schoolIds!.includes(t.schoolId));
     }
 
     if (filters?.search) {
       const searchLower = filters.search.toLowerCase();
-      tenders = tenders.filter(t => 
+      filteredTenders = filteredTenders.filter(t => 
         t.title.toLowerCase().includes(searchLower) ||
         (t.excerpt && t.excerpt.toLowerCase().includes(searchLower))
       );
     }
 
     if (filters?.type) {
-      tenders = tenders.filter(t => t.type === filters.type);
+      filteredTenders = filteredTenders.filter(t => t.type === filters.type);
     }
 
     if (filters?.platform) {
-      tenders = tenders.filter(t => t.platform === filters.platform);
+      filteredTenders = filteredTenders.filter(t => t.platform === filters.platform);
     }
 
-    return tenders.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    return filteredTenders.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
   }
 
   async clearTenders(): Promise<void> {
-    this.tenders.clear();
-    this.currentTenderId = 1;
+    await db.delete(tenders);
   }
 
   async createScanSession(insertSession: InsertScanSession): Promise<ScanSession> {
-    const id = this.currentScanId++;
-    const session: ScanSession = {
-      ...insertSession,
-      id,
-      startedAt: new Date(),
-      completedAt: null,
-    };
-    this.scanSessions.set(id, session);
+    const [session] = await db.insert(scanSessions).values(insertSession).returning();
     return session;
   }
 
   async updateScanSession(id: number, updates: Partial<ScanSession>): Promise<ScanSession | undefined> {
-    const session = this.scanSessions.get(id);
-    if (!session) return undefined;
-
-    const updatedSession = { ...session, ...updates };
-    this.scanSessions.set(id, updatedSession);
-    return updatedSession;
+    const [session] = await db.update(scanSessions)
+      .set(updates)
+      .where(eq(scanSessions.id, id))
+      .returning();
+    return session || undefined;
   }
 
   async getScanSession(id: number): Promise<ScanSession | undefined> {
-    return this.scanSessions.get(id);
+    const [session] = await db.select().from(scanSessions).where(eq(scanSessions.id, id));
+    return session || undefined;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

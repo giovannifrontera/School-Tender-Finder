@@ -34,10 +34,10 @@ School Tender Finder – Calabria is a full-stack web application designed to he
 
 ### Backend Architecture
 - **Express Server**: RESTful API with Express.js
-- **Database Layer**: Drizzle ORM with PostgreSQL (Neon serverless)
-- **File Processing**: Multer for file uploads, CSV parsing capabilities
+- **Database Layer**: Drizzle ORM with PostgreSQL database (migrated from in-memory storage)
+- **File Processing**: Multer for file uploads, CSV parsing with semicolon separator support
 - **Web Scraping**: Axios and Cheerio for extracting tender data from school websites
-- **Session Management**: Connect-pg-simple for PostgreSQL-backed sessions
+- **Enhanced Filtering**: Excludes concorsi and albo pretorio, focuses on procurement tenders only
 
 ### Data Models
 ```typescript
@@ -138,6 +138,10 @@ The system automatically detects which platforms each school uses:
 ```
 Changelog:
 - June 20, 2025. Initial setup
+- June 20, 2025. Migrated from in-memory storage to PostgreSQL database
+- June 20, 2025. Fixed CSV parsing to support semicolon separators (Italian format)
+- June 20, 2025. Enhanced filtering to exclude concorsi and albo pretorio
+- June 20, 2025. Added support for all Italian regions (not just Calabria)
 ```
 
 ## User Preferences
