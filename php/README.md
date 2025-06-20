@@ -1,13 +1,13 @@
-# PHP Version of School Tender Finder
+# PHP School Tender Finder
 
-This directory provides a lightweight PHP implementation of selected API endpoints. It is designed for deployment on shared hosting services such as Aruba that typically offer PHP and MySQL.
+This directory holds the core PHP classes and SQL schema for the project. The main web interface lives in the repository root at `index.php`.
 
 ## Requirements
 
 - PHP 8.0 or newer
-- MySQL (or MariaDB) database
+- MySQL (or MariaDB)
 
-Environment variables used for database connection (assuming MySQL via XAMPP on localhost):
+Environment variables for database connection:
 
 - `DB_DSN` – e.g. `mysql:host=localhost;dbname=school_finder;charset=utf8mb4`
 - `DB_USER` – database user
@@ -15,18 +15,11 @@ Environment variables used for database connection (assuming MySQL via XAMPP on 
 
 ### Database Initialization
 
-The file `schema.sql` in this directory contains the SQL statements to create
-the MySQL tables. Create the database before importing it. For example:
+Import `schema.sql` before running the app:
 
 ```bash
 mysql -u <user> -p -e "CREATE DATABASE school_finder CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 mysql -u <user> -p school_finder < schema.sql
 ```
 
-## Endpoints
-
-- `POST /api/schools` – upload a CSV file named `file` containing school data. Basic columns supported: `codiceMeccanografico`, `denominazioneScuola`, `indirizzoEmail`, `sitoWeb`.
-- `GET /api/schools` – fetch all schools.
-- `GET /api/tenders` – fetch all tenders.
-
-This is a simplified version and does not cover all features of the original application, but it demonstrates how similar functionality can be implemented using PHP.
+The tables mirror those from the previous Node.js version and store schools, tenders and scan sessions.
