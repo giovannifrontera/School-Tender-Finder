@@ -1,6 +1,6 @@
 # PHP Version of School Tender Finder
 
-This directory provides a lightweight PHP implementation of a few API endpoints from the original Node.js server. It is designed for deployment on shared hosting services such as Aruba that typically offer PHP and MySQL.
+This directory provides a lightweight PHP implementation of selected API endpoints. It is designed for deployment on shared hosting services such as Aruba that typically offer PHP and MySQL.
 
 ## Requirements
 
@@ -29,4 +29,4 @@ mysql -u <user> -p <database> < schema.sql
 - `GET /api/schools` – fetch all schools.
 - `GET /api/tenders` – fetch all tenders.
 
-This is a simplified port and does not cover all features of the Node.js application, but it demonstrates how similar functionality can be implemented using PHP.
+This is a simplified version and does not cover all features of the original application, but it demonstrates how similar functionality can be implemented using PHP.
