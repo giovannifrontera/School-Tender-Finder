@@ -13,6 +13,16 @@ Environment variables used for database connection:
 - `DB_USER` – database user
 - `DB_PASS` – database password
 
+### Database Initialization
+
+The file `schema.sql` in this directory contains the SQL statements to create
+the MySQL tables. Execute it once against your database before running the PHP
+endpoints:
+
+```bash
+mysql -u <user> -p <database> < schema.sql
+```
+
 ## Endpoints
 
 - `POST /api/schools` – upload a CSV file named `file` containing school data. Basic columns supported: `codiceMeccanografico`, `denominazioneScuola`, `indirizzoEmail`, `sitoWeb`.
