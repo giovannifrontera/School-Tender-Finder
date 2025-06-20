@@ -1,0 +1,95 @@
+**Prompt “tutto-in-uno” per Replit AI**
+(copia / incolla nella casella **AI-generate code**: il modello produrrà il progetto completo da zero, senza file superflui).
+
+````
+# RUOLO
+Agisci come senior full-stack JavaScript engineer.
+
+# OBIETTIVO
+Crea la web-app «School Tender Finder – Calabria» capace di:
+• ricevere dall’utente il file CSV/JSON MIUR (dataset scuole)  
+• filtrare automaticamente le sole scuole della **Calabria**  
+• a richiesta dell’utente, cercare i bandi pubblicati da quelle scuole  
+  ─ sia sul loro dominio .edu.it (albo / amministrazione-trasparente)  
+  ─ sia su 4 portali esterni più diffusi:  
+    ① trasparenzascuole.it (Axios)  
+    ② portaleargo.it    (Argo)  
+    ③ web.spaggiari.eu   (Spaggiari)  
+    ④ *.net4market.com   (Net4Market)  
+• mostrare in una tabella (single-page) titolo, scadenza, tipologia e link PDF  
+• girare su un hosting come Replit Deploy (niente shell): **un solo processo Node**.
+
+# STACK
+Backend Node 20 + Express | axios, cheerio, fast-xml-parser  
+Storage JSON in RAM (variabile globale) – niente DB server  
+Frontend Vue 3 CDN + Bootstrap 5 + Axios (in un solo index.html)
+
+# ENDPOINT
+| VERB | PATH | DESCRIZIONE |
+|------|------|-------------|
+| POST | /api/schools       | body multipart (file) → carica, filtra REGIONE=CALABRIA, salva in memoria |
+| GET  | /api/provinces     | → lista province distinte |
+| POST | /api/scan          | body {provinces:[…]} → avvia scraping, restituisce progress JSON |
+| GET  | /api/tenders       | query ?province=&q= → JSON risultati |
+
+# SCRAPING (inline nello stesso server.js)
+```js
+const spiders = {
+  axios : url => scrapeAxios(url),      // trasparenzascuole.it
+  argo  : url => scrapeArgo(url),       // portaleargo.it
+  spag  : url => scrapeSpaggiari(url),  // web.spaggiari.eu
+  n4m   : url => scrapeNet4M(url),      // net4market
+  gen   : url => scrapeGeneric(url)     // dominio .edu.it
+};
+function choose(u){
+  if(/trasparenzascuole\.it/.test(u)) return 'axios';
+  if(/portaleargo\.it/.test(u))       return 'argo';
+  if(/spaggiari\.eu/.test(u))         return 'spag';
+  if(/net4market/.test(u))            return 'n4m';
+  return 'gen';
+}
+````
+
+• Ogni scraper restituisce array `{title,deadline,pdf,school}`.
+• Usa **max 5 fetch parallele**; `await delay(1000)` tra host per educazione.
+• Regex keyword: `/bando|gara|avviso|determina/i`; data `\d{1,2}\/\d{1,2}\/\d{4}`.
+• Deduplica via hash `(schoolId+pdf)`.
+
+# FRONT-END (index.html)
+
+Sezioni:
+
+1. **Upload** file scuole → mostra #record caricati.
+2. **Filtro province** (multiselect) → bottone «Cerca bandi».
+3. **Progress bar** live mentre `/api/scan` lavora (SSE o polling).
+4. **Tabella Bootstrap** con risultati + pulsante «Esporta CSV».
+
+# FILE DA PRODURRE
+
+\=== package.json === (deps: express, axios, cheerio, fast-xml-parser)
+\=== server.js === (back-end + scraper + API)
+\=== public/index.html === (Vue + Bootstrap + app logic)
+\=== README.md === (1 pagina di istruzioni deploy)
+
+# OUTPUT FORMATO
+
+Per ogni file scrivi:
+
+````
+=== nome_file ===
+```js|html|json|md
+// codice
+````
+
+Nessun altro testo.
+
+# CONSTRAINT
+
+• Niente test, niente commenti prolissi: codice essenziale.
+• Tutto deve eseguire con «Run» su Replit senza ulteriori configurazioni.
+• Massimizza riuso di funzioni per ridurre righe ⇒ meno token / crediti.
+
+```
+
+> Incolla il prompt, premi **Generate**: Replit AI genererà esattamente i quattro file richiesti, pronti a essere avviati e pubblicati.
+```
