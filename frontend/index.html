@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Tender Finder</title>
+    <!-- Vue 3 via CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body>
+<div id="app">
+    <h1>School Tender Finder</h1>
+
+    <!-- Dataset upload placeholder -->
+    <section>
+        <h2>Upload Dataset</h2>
+        <input type="file" id="dataset-upload" />
+    </section>
+
+    <!-- Filter selection placeholder -->
+    <section>
+        <h2>Filters</h2>
+        <select v-model="selectedSchool">
+            <option disabled value="">Select School</option>
+            <option v-for="school in schools" :key="school.id" :value="school.name">
+                {{ school.name }}
+            </option>
+        </select>
+    </section>
+
+    <!-- Results table placeholder -->
+    <section>
+        <h2>Results</h2>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>School</th>
+                    <th>Tender</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Placeholder rows -->
+                <tr>
+                    <td colspan="2">No results yet</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<script>
+const { createApp } = Vue;
+createApp({
+    data() {
+        return {
+            schools: [],
+            selectedSchool: ''
+        };
+    },
+    methods: {
+        loadSchools() {
+            fetch('/api/schools')
+                .then(response => response.json())
+                .then(data => {
+                    this.schools = data;
+                })
+                .catch(() => {
+                    console.warn('Failed to load schools');
+                });
+        }
+    },
+    mounted() {
+        this.loadSchools();
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
