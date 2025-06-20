@@ -16,11 +16,11 @@ Environment variables used for database connection (assuming MySQL via XAMPP on 
 ### Database Initialization
 
 The file `schema.sql` in this directory contains the SQL statements to create
-the MySQL tables. Execute it once against your database before running the PHP
-endpoints:
+the MySQL tables. Create the database before importing it. For example:
 
 ```bash
-mysql -u <user> -p <database> < schema.sql
+mysql -u <user> -p -e "CREATE DATABASE school_finder CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u <user> -p school_finder < schema.sql
 ```
 
 ## Endpoints
