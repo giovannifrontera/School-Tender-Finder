@@ -93,7 +93,6 @@ export default function FileUpload({ onFileUploaded }: FileUploadProps) {
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={() => fileInputRef.current?.click()}
           >
             <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Trascina il file qui</h3>
@@ -103,6 +102,10 @@ export default function FileUpload({ onFileUploaded }: FileUploadProps) {
               type="button" 
               disabled={uploading}
               className="bg-primary hover:bg-primary/90"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
             >
               {uploading ? "Caricamento..." : "Seleziona File"}
             </Button>
