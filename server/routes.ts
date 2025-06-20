@@ -17,8 +17,8 @@ const PLATFORMS = {
   edu: '.edu.it'
 };
 
-const PROCUREMENT_KEYWORDS = /bando.*gara|gara.*appalto|procedura.*negoziata|appalto|fornitura|servizi/i;
-const EXCLUDE_KEYWORDS = /concorso|selezione.*personale|graduatoria|albo.*pretorio/i;
+const PROCUREMENT_KEYWORDS = /bando.*gara|gara.*appalto|procedura.*negoziata|appalto|fornitura|servizi|bando.*fornitura|gara.*servizi/i;
+const EXCLUDE_KEYWORDS = /concorso|selezione.*personale|graduatoria|albo.*pretorio|bando.*concorso|concorso.*personale|avviso.*selezione|comunicazione|decreto|nomina|incarico/i;
 const DATE_REGEX = /\d{1,2}\/\d{1,2}\/\d{4}/;
 
 function detectPlatform(url: string): string {
@@ -61,23 +61,28 @@ async function scrapeSchoolTenders(school: any): Promise<any[]> {
       const $ = cheerio.load(response.data);
       
       // Look for tender-related sections
-      const tenderSections = $('a[href*="bandi"], a[href*="gara"], a[href*="amministrazione-trasparente"]');
+      const tenderSections = $('a[href*="bandi"], a[href*="gara"], a[href*="amministrazione-trasparente"], a[href*="appalti"]');
       
       tenderSections.each((_, element) => {
         const title = $(element).text().trim();
         const href = $(element).attr('href');
         
-        // Filter for procurement content only
+        // Filter for procurement content only (exclude concorsi and albo pretorio)
         if (PROCUREMENT_KEYWORDS.test(title) && !EXCLUDE_KEYWORDS.test(title)) {
           const dateMatch = title.match(DATE_REGEX);
+          
+          // Determine tender type based on content
+          let type = 'bando';
+          if (title.toLowerCase().includes('gara')) type = 'gara';
+          else if (title.toLowerCase().includes('appalto')) type = 'appalto';
+          else if (title.toLowerCase().includes('fornitura')) type = 'fornitura';
+          else if (title.toLowerCase().includes('servizi')) type = 'servizi';
           
           tenders.push({
             title,
             excerpt: title.substring(0, 100) + (title.length > 100 ? '...' : ''),
             deadline: dateMatch ? dateMatch[0] : null,
-            type: title.toLowerCase().includes('bando') ? 'bando' : 
-                  title.toLowerCase().includes('gara') ? 'gara' :
-                  title.toLowerCase().includes('avviso') ? 'avviso' : 'determina',
+            type,
             platform,
             pdfUrl: href?.includes('.pdf') ? href : null,
             sourceUrl: url,
@@ -113,13 +118,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle both direct array and @graph structure
         schools = Array.isArray(jsonData) ? jsonData : jsonData['@graph'] || [];
       } else {
-        // Parse CSV
+        // Parse CSV (handle both comma and semicolon separators)
         const results: any[] = [];
         const stream = Readable.from(fileContent);
         
+        // Detect separator
+        const separator = fileContent.includes(';') ? ';' : ',';
+        
         await new Promise((resolve, reject) => {
           stream
-            .pipe(csv())
+            .pipe(csv({ separator }))
             .on('data', (data) => results.push(data))
             .on('end', resolve)
             .on('error', reject);
@@ -128,33 +136,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         schools = results;
       }
 
-      // Filter for Calabria schools and transform data
-      const calabriaSchools = schools
+      // Transform data (preserve all regions, not just Calabria)
+      const transformedSchools = schools
         .filter(school => 
-          (school.REGIONE || school.regione || '').toLowerCase().includes('calabria') ||
-          (school.PROVINCIA || school.provincia || '').match(/CS|CZ|RC|KR|VV/)
+          // Keep all schools but ensure we have required fields
+          (school.DENOMINAZIONESCUOLA || school.denominazioneScuola) &&
+          (school.CODICESCUOLA || school.codiceMeccanografico)
         )
         .map(school => ({
-          codiceMeccanografico: school.CODICEMECCANOGRAFICO || school.codiceMeccanografico || '',
+          codiceMeccanografico: school.CODICESCUOLA || school.codiceMeccanografico || '',
           denominazioneScuola: school.DENOMINAZIONESCUOLA || school.denominazioneScuola || '',
-          codiceIstitutoRiferimento: school.CODICEISTITUTORIFERIMENTO || school.codiceIstitutoRiferimento,
-          denominazioneIstitutoRiferimento: school.DENOMINAZIONEISTITUTORIFERIMENTO || school.denominazioneIstitutoRiferimento,
-          indirizzoEmail: school.INDIRIZZOEMAILSCUOLA || school.indirizzoEmail,
-          sitoWeb: school.SITOWEBSCUOLA || school.sitoWeb,
-          indirizzo: school.INDIRIZZO || school.indirizzo,
-          cap: school.CAP || school.cap,
-          comune: school.COMUNE || school.comune,
-          provincia: school.PROVINCIA || school.provincia,
-          regione: 'CALABRIA',
-          areaGeografica: 'SUD',
-          tipoIstituto: school.TIPOISTRUZIONE || school.tipoIstituto,
+          codiceIstitutoRiferimento: school.CODICEISTITUTORIFERIMENTO || school.codiceIstitutoRiferimento || null,
+          denominazioneIstitutoRiferimento: school.DENOMINAZIONEISTITUTORIFERIMENTO || school.denominazioneIstitutoRiferimento || null,
+          indirizzoEmail: school.INDIRIZZOEMAILSCUOLA || school.indirizzoEmail || null,
+          sitoWeb: school.SITOWEBSCUOLA || school.sitoWeb || null,
+          indirizzo: school.INDIRIZZOSCUOLA || school.indirizzo || null,
+          cap: school.CAPSCUOLA || school.cap || null,
+          comune: school.DESCRIZIONECOMUNE || school.comune || null,
+          provincia: school.PROVINCIA || school.provincia || null,
+          regione: school.REGIONE || school.regione || null,
+          areaGeografica: school.AREAGEOGRAFICA || school.areaGeografica || null,
+          tipoIstituto: school.DESCRIZIONETIPOLOGIAGRADOISTRUZIONESCUOLA || school.tipoIstituto || null,
           detectedPlatforms: [], // Will be populated during platform detection
         }));
 
       await storage.clearSchools();
       await storage.clearTenders();
       
-      const createdSchools = await storage.createSchools(calabriaSchools);
+      const createdSchools = await storage.createSchools(transformedSchools);
       
       res.json({
         message: 'Schools uploaded successfully',
